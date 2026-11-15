@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DeGenRESOLVE – run it in your browser</title>
+<meta name="description" content="Oxford Nanopore amplicon consensus with automated IUPAC ambiguity resolution. Run the DeGenRESOLVE desktop app free in your browser with GitHub Codespaces.">
+<meta property="og:title" content="DeGenRESOLVE – run it in your browser">
+<meta property="og:description" content="ONT amplicon consensus with automated IUPAC ambiguity resolution. Free to run in your own GitHub Codespace.">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<style>
+  :root {
+    --bg: #f8f7f3;
+    --surface: #ffffff;
+    --text: #1b1f24;
+    --muted: #59616c;
+    --line: #e2dfd7;
+    --accent: #0b6b57;
+    --accent-hover: #095a49;
+    --accent-ink: #ffffff;
+    --accent-soft: #e2f1ec;
+    --amber-soft: #fbf0dc;
+    --amber-ink: #7a4d00;
+    --code-bg: #f1efe9;
+    --radius: 12px;
+    --mono: ui-monospace, "SFMono-Regular", "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #101316;
+      --surface: #171b1f;
+      --text: #e8ebee;
+      --muted: #a2aab4;
+      --line: #293036;
+      --accent: #4fc4a4;
+      --accent-hover: #6fd3b7;
+      --accent-ink: #062019;
+      --accent-soft: #15302a;
+      --amber-soft: #33270f;
+      --amber-ink: #f0c776;
+      --code-bg: #1d2227;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.6 var(--sans);
+  }
+  a { color: var(--accent); text-underline-offset: 2px; }
+  a:hover { color: var(--accent-hover); }
+  code, pre { font-family: var(--mono); font-size: 0.92em; }
+  code { background: var(--code-bg); padding: 0.1em 0.35em; border-radius: 5px; }
+  .wrap { width: 100%; max-width: 1040px; margin: 0 auto; padding: 0 16px; }
+  @media (min-width: 720px) { .wrap { padding: 0 28px; } }
+
+  /* Header */
+  .top { border-bottom: 1px solid var(--line); }
+  .top .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; height: 60px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: -0.01em; color: var(--text); text-decoration: none; }
+  .brand svg { flex: none; }
+  .top nav { display: flex; gap: 20px; font-size: 0.95rem; }
+  .top nav a { color: var(--muted); text-decoration: none; }
+  .top nav a:hover { color: var(--text); }
+  @media (max-width: 640px) { .top nav a.opt { display: none; } }
+
+  /* Hero */
+  .hero { padding: 64px 0 56px; }
+  .eyebrow { margin: 0 0 14px; color: var(--muted); font: 600 0.8rem/1.4 var(--mono); letter-spacing: 0.06em; text-transform: uppercase; }
+  h1 { margin: 0; max-width: 18ch; font-size: clamp(2rem, 5.2vw, 3.3rem); line-height: 1.08; letter-spacing: -0.025em; }
+  .lede { max-width: 62ch; margin: 22px 0 0; font-size: 1.12rem; color: var(--muted); }
+  .lede strong { color: var(--text); font-weight: 600; }
+  .cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 9px;
+    padding: 12px 18px; border-radius: 10px; border: 1px solid var(--line);
+    background: var(--surface); color: var(--text); font-weight: 600; text-decoration: none;
+    transition: background 0.15s, border-color 0.15s, transform 0.15s;
+  }
+  .btn:hover { border-color: var(--muted); color: var(--text); }
+  .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .btn.primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); color: var(--accent-ink); }
+  .btn:focus-visible { outline: 3px solid var(--accent-soft); outline-offset: 2px; }
+  .facts { display: flex; flex-wrap: wrap; gap: 8px 22px; margin: 22px 0 0; padding: 0; list-style: none; color: var(--muted); font-size: 0.93rem; }
+  .facts li::before { content: "✓"; color: var(--accent); font-weight: 700; margin-right: 7px; }
+
+  /* Sections */
+  section.block { padding: 56px 0; border-top: 1px solid var(--line); }
+  h2 { margin: 0 0 8px; font-size: clamp(1.45rem, 3vw, 1.8rem); letter-spacing: -0.015em; line-height: 1.2; }
+  .sub { margin: 0 0 28px; color: var(--muted); max-width: 64ch; }
+  h3 { margin: 0 0 6px; font-size: 1.08rem; letter-spacing: -0.005em; }
+
+  .steps { display: grid; gap: 16px; grid-template-columns: 1fr; margin: 0; padding: 0; list-style: none; counter-reset: step; }
+  @media (min-width: 820px) { .steps { grid-template-columns: repeat(3, 1fr); } }
+  .steps li { position: relative; padding: 22px 22px 20px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+  .steps li::before {
+    counter-increment: step; content: counter(step);
+    display: grid; place-items: center; width: 30px; height: 30px; margin-bottom: 14px;
+    border-radius: 50%; background: var(--accent-soft); color: var(--accent); font: 700 0.95rem/1 var(--mono);
+  }
+  .steps p, .card p { margin: 0; color: var(--muted); font-size: 0.97rem; }
+
+  .cards { display: grid; gap: 16px; grid-template-columns: 1fr; }
+  @media (min-width: 820px) { .cards { grid-template-columns: repeat(3, 1fr); } }
+  .card {
+    display: flex; flex-direction: column; gap: 10px; padding: 22px;
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    color: var(--text); text-decoration: none; transition: border-color 0.15s, transform 0.15s;
+  }
+  .card:hover { border-color: var(--accent); color: var(--text); transform: translateY(-1px); }
+  .card .tag { align-self: flex-start; font: 600 0.75rem/1 var(--mono); padding: 5px 8px; border-radius: 6px; background: var(--accent-soft); color: var(--accent); }
+  .card .tag.warn { background: var(--amber-soft); color: var(--amber-ink); }
+  .card dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; margin: 4px 0 0; font-size: 0.92rem; }
+  .card dt { color: var(--muted); }
+  .card dd { margin: 0; font-family: var(--mono); font-size: 0.88rem; }
+  .card .open { margin-top: auto; padding-top: 8px; color: var(--accent); font-weight: 600; font-size: 0.93rem; }
+
+  .note { margin-top: 20px; padding: 16px 18px; border-radius: var(--radius); background: var(--amber-soft); color: var(--text); font-size: 0.96rem; }
+  .note strong { color: var(--amber-ink); }
+  .seq { font-family: var(--mono); letter-spacing: 0.04em; }
+  .seq .lo { opacity: 0.55; }
+
+  .two { display: grid; gap: 16px; grid-template-columns: 1fr; }
+  @media (min-width: 820px) { .two { grid-template-columns: 1fr 1fr; } }
+  .panel { padding: 24px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
+  .panel p { margin: 0; color: var(--muted); }
+  .panel p + p { margin-top: 10px; }
+
+  pre.tree {
+    margin: 0; padding: 18px 20px; overflow-x: auto;
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    line-height: 1.55;
+  }
+  .tree .c { color: var(--muted); }
+  .inputs { display: grid; gap: 20px; grid-template-columns: 1fr; align-items: start; }
+  @media (min-width: 820px) { .inputs { grid-template-columns: 1.1fr 1fr; } }
+  .inputs ul { margin: 0; padding-left: 1.1em; color: var(--muted); }
+  .inputs li + li { margin-top: 8px; }
+
+  footer { padding: 36px 0 48px; border-top: 1px solid var(--line); color: var(--muted); font-size: 0.92rem; }
+  footer .wrap { display: flex; flex-wrap: wrap; gap: 8px 24px; justify-content: space-between; }
+  footer a { color: var(--muted); }
+  footer a:hover { color: var(--text); }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="./" aria-label="DeGenRESOLVE home">
+      <svg width="26" height="26" viewBox="0 0 32 32" aria-hidden="true">
+        <rect width="32" height="32" rx="8" fill="var(--accent)"/>
+        <path d="M10 7c6 4 6 14 12 18M22 7c-6 4-6 14-12 18" stroke="var(--accent-ink)" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+        <path d="M12.3 11h7.4M12.3 21h7.4" stroke="var(--accent-ink)" stroke-width="2" stroke-linecap="round" opacity="0.75"/>
+      </svg>
+      DeGenRESOLVE
+    </a>
+    <nav aria-label="Sections">
+      <a class="opt" href="#how">How it works</a>
+      <a class="opt" href="#samples">Sample output</a>
+      <a class="opt" href="#cost">Cost &amp; data</a>
+      <a href="https://github.com/Shoaib-Saikat/DeGenRESOLVE-ONT-Sequencing-Data-Analyzer">Source</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="wrap">
+      <p class="eyebrow">Oxford Nanopore · amplicon consensus · v1.0.1</p>
+      <h1>Resolve ambiguous bases in your ONT consensus, in the browser.</h1>
+      <p class="lede">
+        DeGenRESOLVE turns raw <code>fastq_pass</code> reads and a reference into refined consensus
+        FASTA files. It decides every IUPAC ambiguity code from the read pileup and writes detailed QC
+        reports. This page starts <strong>the real desktop app</strong> in your own GitHub Codespace,
+        with nothing to install.
+      </p>
+      <div class="cta">
+        <a class="btn primary" href="https://codespaces.new/Shoaib-Saikat/DeGenRESOLVE-online?quickstart=1">
+          <svg width="18" height="18" viewBox="0 0 16 16" aria-hidden="true" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+          Open in GitHub Codespaces
+        </a>
+        <a class="btn" href="samples/summary_all.html">See a sample report</a>
+      </div>
+      <ul class="facts">
+        <li>Free with a GitHub account</li>
+        <li>Runs on your own codespace quota</li>
+        <li>Your reads never leave it</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="block" id="how">
+    <div class="wrap">
+      <h2>How it works</h2>
+      <p class="sub">The same release, the same tool versions, and the same results as a local install.</p>
+      <ol class="steps">
+        <li>
+          <h3>Start a codespace</h3>
+          <p>GitHub creates a private 4-core, 16 GB machine under your account. It has DeGenRESOLVE and every tool it needs, at the exact versions the published results were made with. Startup takes 2–3 minutes.</p>
+        </li>
+        <li>
+          <h3>Use the desktop app</h3>
+          <p>The DeGenRESOLVE window opens in a browser tab. Run the bundled influenza A demo, or drag your own run folder in and press Start.</p>
+        </li>
+        <li>
+          <h3>Download your results</h3>
+          <p>You get a consensus FASTA per barcode, a 27-column diagnostic log, and HTML QC reports. One command zips them for download.</p>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="block" id="samples">
+    <div class="wrap">
+      <h2>Sample output from the demo data</h2>
+      <p class="sub">Two influenza A barcodes from the release's test dataset, called against a 37-record segment panel. These are the reports the app produces.</p>
+      <div class="cards">
+        <a class="card" href="samples/summary_all.html">
+          <span class="tag">Run summary</span>
+          <h3>Both barcodes at a glance</h3>
+          <p>Segment composition, coverage and resolution outcome for every barcode in the run.</p>
+          <span class="open">Open report →</span>
+        </a>
+        <a class="card" href="samples/barcode01_summary_report.html">
+          <span class="tag">barcode01 · H9N2</span>
+          <dl>
+            <dt>Median depth</dt><dd>273×</dd>
+            <dt>Ambiguous sites</dt><dd>556 examined</dd>
+            <dt>Resolved</dt><dd>219 to the dominant base</dd>
+            <dt>Kept as IUPAC</dt><dd>165 mixed sites</dd>
+            <dt>Low confidence</dt><dd>0.0% of bases</dd>
+          </dl>
+          <span class="open">Open report →</span>
+        </a>
+        <a class="card" href="samples/barcode09_summary_report.html">
+          <span class="tag warn">barcode09 · H5N1 · shallow</span>
+          <dl>
+            <dt>Median depth</dt><dd>13×</dd>
+            <dt>Ambiguous sites</dt><dd>3,766 examined</dd>
+            <dt>Resolved</dt><dd>0 (below 100× minimum)</dd>
+            <dt>Low confidence</dt><dd>60.1% of bases</dd>
+          </dl>
+          <span class="open">Open report →</span>
+        </a>
+      </div>
+      <p class="note">
+        <strong>Lowercase means low confidence.</strong> The consensus keeps the soft-mask
+        <code>vcf2fq</code> applies where depth is below 3 or quality below 10. Here's a stretch from
+        barcode09: <span class="seq">TTGAA<span class="lo">ctgagg</span>AGCA</span>. Check a sample's masked
+        fraction before trusting its sequence. Uppercase it (<code>seqtk seq -U</code>) before
+        archive submission.
+      </p>
+    </div>
+  </section>
+
+  <section class="block" id="cost">
+    <div class="wrap">
+      <div class="two">
+        <div class="panel">
+          <h2>Who pays</h2>
+          <p>You do, from GitHub's free allowance, and nothing is billed to the authors. GitHub Free includes 120 Codespaces core-hours a month. That's about 30 hours on this 4-core machine.</p>
+          <p>A codespace stops after 30 minutes without activity. You can stop or delete it any time at <a href="https://github.com/codespaces">github.com/codespaces</a>.</p>
+        </div>
+        <div class="panel">
+          <h2>Where your data goes</h2>
+          <p>Reads you upload stay inside your own codespace, a private machine under your GitHub account. Nothing is sent to the DeGenRESOLVE authors.</p>
+          <p>Only upload data you're permitted to process on a cloud service. Delete the codespace once you've downloaded your results.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="input">
+    <div class="wrap">
+      <h2>What to upload</h2>
+      <p class="sub">Drag one run folder into <code>my_data/</code> in the codespace. It needs this layout:</p>
+      <div class="inputs">
+<pre class="tree">your_run/
+├── fastq_pass/
+│   ├── barcode01/  <span class="c"># *.fastq.gz</span>
+│   ├── barcode02/
+│   └── …
+└── reference/
+    └── panel.fasta <span class="c"># exactly one</span></pre>
+        <ul>
+          <li>Reads must be gzip-compressed FASTQ (<code>.fastq.gz</code>). Each barcode folder name starts with <code>barcode</code>.</li>
+          <li>Put every segment of a segmented virus, such as influenza, in the one reference file. Choose <em>Influenza</em> filter mode in Configuration.</li>
+          <li>The basecall tier (hac / sup / fast) is read from the reads and recorded in each run receipt.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="local">
+    <div class="wrap">
+      <h2>Prefer your own computer?</h2>
+      <p class="sub">DeGenRESOLVE runs offline on Linux, or on Windows through WSL 2. The offline bundle needs no internet on the target machine and no preinstalled bioinformatics tools.</p>
+      <a class="btn" href="https://github.com/Shoaib-Saikat/DeGenRESOLVE-ONT-Sequencing-Data-Analyzer#installation">Installation guide</a>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>DeGenRESOLVE v1.0.1 by Shoaib Saikat · MIT licence</span>
+    <span>
+      <a href="https://github.com/Shoaib-Saikat/DeGenRESOLVE-ONT-Sequencing-Data-Analyzer">Source code</a> ·
+      <a href="https://github.com/Shoaib-Saikat/DeGenRESOLVE-ONT-Sequencing-Data-Analyzer/blob/main/readme_bench_scientist.md">Bench Scientist Guide</a> ·
+      <a href="https://github.com/Shoaib-Saikat/DeGenRESOLVE-online">Codespaces setup</a>
+    </span>
+  </div>
+</footer>
+
+</body>
+</html>
