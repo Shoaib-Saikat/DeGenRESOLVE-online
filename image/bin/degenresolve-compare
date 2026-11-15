@@ -1,0 +1,162 @@
+#!/usr/bin/env python3
+"""Compare a DeGenRESOLVE run against the reference run shipped with v1.0.1's test_data.
+
+Usage:
+    degenresolve-compare RUN_DIR [--markdown SUMMARY.md]
+
+RUN_DIR is the folder you pointed DeGenRESOLVE at (it holds fastq_pass/, reference/ and,
+after a run, results/ and log/). The reference is the validated run in
+/opt/degenresolve/test_data/results, so this only makes sense for the bundled influenza
+demo data run with the demo settings (filter mode "influenza").
+
+Checks, per barcode: the step-7 draft and step-8 refined consensus FASTA (md5, so case and
+therefore soft-masking count), every "scope A" checksum in the run receipt (merged and
+trimmed reads, SAM/BAM/VCF records, consensus, diagnostic log), and the soft-masked
+fraction. Also reports the tool-version check and whether the effective settings match.
+
+Exit status: 0 = everything matches, 1 = a mismatch, 2 = outputs missing.
+"""
+import hashlib
+import json
+import sys
+from pathlib import Path
+
+REFERENCE = Path("/opt/degenresolve/test_data/results")
+
+
+def md5(path: Path) -> str:
+    h = hashlib.md5()
+    with open(path, "rb") as fh:
+        for chunk in iter(lambda: fh.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def scope_a(receipt: Path) -> dict:
+    """The 'scope A checksums' block of a run receipt, as {label: md5}."""
+    out, inside = {}, False
+    for line in receipt.read_text().splitlines():
+        if line.startswith("--- scope A checksums"):
+            inside = True
+            continue
+        if inside:
+            if line.startswith("---"):
+                break
+            parts = line.rsplit(None, 1)
+            if len(parts) == 2 and len(parts[1]) == 32:
+                out[parts[0].strip()] = parts[1]
+    return out
+
+
+def params(path: Path) -> dict:
+    if not path.exists():
+        return {}
+    return dict(l.split("=", 1) for l in path.read_text().splitlines() if "=" in l)
+
+
+def soft_masked(fasta: Path) -> str:
+    seq = "".join(l.strip() for l in fasta.read_text().splitlines() if not l.startswith(">"))
+    letters = [c for c in seq if c.isalpha()]
+    if not letters:
+        return "n/a"
+    return f"{100 * sum(c.islower() for c in letters) / len(letters):.1f}%"
+
+
+def main(argv):
+    if not argv or argv[0] in ("-h", "--help"):
+        print(__doc__)
+        return 0
+    run = Path(argv[0]).resolve()
+    md_path = Path(argv[argv.index("--markdown") + 1]) if "--markdown" in argv else None
+    results = run / "results"
+
+    rows, problems, missing = [], [], []
+    barcodes = sorted(p.name.replace("_consensus_edited.fasta", "")
+                      for p in (REFERENCE / "step_8_refined_consensus").glob("*_consensus_edited.fasta"))
+
+    for bc in barcodes:
+        pairs = [
+            ("draft consensus FASTA (step 7)", f"step_7_draft_consensus/{bc}_consensus.fasta"),
+            ("refined consensus FASTA (step 8)", f"step_8_refined_consensus/{bc}_consensus_edited.fasta"),
+        ]
+        for label, rel in pairs:
+            new, ref = results / rel, REFERENCE / rel
+            if not new.exists():
+                rows.append((bc, label, "MISSING", md5(ref)[:12]))
+                missing.append(f"{bc}: {rel}")
+                continue
+            a, b = md5(new), md5(ref)
+            rows.append((bc, label, "match" if a == b else "DIFFERS", f"{a[:12]} vs {b[:12]}"))
+            if a != b:
+                problems.append(f"{bc}: {label}")
+
+        rec_new = results / "reports" / f"{bc}_receipt.txt"
+        rec_ref = REFERENCE / "reports" / f"{bc}_receipt.txt"
+        if rec_new.exists():
+            sa, sb = scope_a(rec_new), scope_a(rec_ref)
+            for key in sb:
+                ok = sa.get(key) == sb[key]
+                rows.append((bc, f"receipt checksum: {key}", "match" if ok else "DIFFERS",
+                             f"{(sa.get(key) or 'absent')[:12]} vs {sb[key][:12]}"))
+                if not ok:
+                    problems.append(f"{bc}: receipt {key}")
+        else:
+            missing.append(f"{bc}: results/reports/{bc}_receipt.txt")
+
+        fa_new = results / "step_8_refined_consensus" / f"{bc}_consensus_edited.fasta"
+        if fa_new.exists():
+            ref_mask = soft_masked(REFERENCE / "step_8_refined_consensus" / f"{bc}_consensus_edited.fasta")
+            new_mask = soft_masked(fa_new)
+            rows.append((bc, "soft-masked (low-confidence) bases", "match" if new_mask == ref_mask else "DIFFERS",
+                         f"{new_mask} vs {ref_mask}"))
+            if new_mask != ref_mask:
+                problems.append(f"{bc}: soft-masked fraction")
+
+    version_status = "not recorded"
+    rv = results / "reports" / "runtime_versions.json"
+    if rv.exists():
+        try:
+            vm = json.loads(rv.read_text()).get("version_match", {})
+            version_status = vm.get("status", "not recorded")
+            if vm.get("differences"):
+                version_status += " (" + ", ".join(sorted(vm["differences"])) + ")"
+        except (ValueError, OSError):
+            pass
+
+    p_new, p_ref = params(results / "reports" / "effective_params.txt"), params(REFERENCE / "reports" / "effective_params.txt")
+    setting_diffs = [f"{k}={p_new.get(k, 'absent')} (reference {v})" for k, v in sorted(p_ref.items())
+                     if k != "app_version" and p_new.get(k) != v]
+
+    width = max(len(r[1]) for r in rows) if rows else 30
+    print(f"\nDeGenRESOLVE run vs. v1.0.1 reference run\n  run:       {run}\n  reference: {REFERENCE}\n")
+    for bc, label, status, detail in rows:
+        print(f"  {bc}  {label:<{width}}  {status:<8} {detail}")
+    print(f"\n  tool versions vs bundle: {version_status}")
+    if setting_diffs:
+        print("  settings differ from the reference run, so differences are expected:")
+        for d in setting_diffs:
+            print(f"    - {d}")
+
+    if missing:
+        verdict, code = "INCOMPLETE - outputs missing: " + "; ".join(missing), 2
+    elif problems:
+        verdict, code = f"DIFFERS from the reference in {len(problems)} check(s)", 1
+    else:
+        verdict, code = f"IDENTICAL to the reference run ({len(rows)} checks)", 0
+    print(f"\n  Result: {verdict}\n")
+
+    if md_path:
+        lines = ["## DeGenRESOLVE demo run vs. v1.0.1 reference", "",
+                 f"**Result:** {verdict}", "",
+                 f"Tool versions vs bundle: **{version_status}**", "",
+                 "| Barcode | Check | Status | New vs reference |", "|---|---|---|---|"]
+        lines += [f"| {bc} | {label} | {status} | `{detail}` |" for bc, label, status, detail in rows]
+        if setting_diffs:
+            lines += ["", "Settings that differ from the reference run:", ""] + [f"- {d}" for d in setting_diffs]
+        md_path.parent.mkdir(parents=True, exist_ok=True)
+        md_path.write_text("\n".join(lines) + "\n")
+    return code
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

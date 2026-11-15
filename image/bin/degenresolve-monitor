@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# Live status of DeGenRESOLVE analyses, shown in a terminal panel of the codespace.
+#
+# It prints once a minute only while an analysis is running. Terminal output counts as
+# activity, so a long run is not cut off by the 30-minute idle timeout; when nothing is
+# running it stays quiet, so an idle codespace still stops and stops using your free hours.
+echo "DeGenRESOLVE run monitor: progress appears here while an analysis is running."
+echo "  Desktop with the app:  Ports tab -> 'DeGenRESOLVE desktop' (port 6080) -> Open in Browser"
+echo "  Restart the app:       degenresolve-gui"
+echo "  Zip results:           degenresolve-zip <run folder>"
+echo "  Check the demo run:    degenresolve-compare demo_data"
+echo
+
+# The pipeline runs from the folder that holds fastq_pass/, so only count processes whose
+# working directory looks like a run folder.
+find_run() {
+    local p d
+    for p in $(pgrep -f 'main_with_config\.sh' 2>/dev/null); do
+        d="$(readlink -f "/proc/$p/cwd" 2>/dev/null)" || continue
+        if [ -d "$d/fastq_pass" ]; then
+            echo "$p $d"
+            return 0
+        fi
+    done
+    return 1
+}
+
+active_dir=""
+while true; do
+    if run="$(find_run)"; then
+        pid="${run%% *}"
+        dir="${run#* }"
+        secs="$(ps -o etimes= -p "$pid" 2>/dev/null | tr -d ' ')"
+        secs="${secs:-0}"
+        total="$(find "$dir/fastq_pass" -mindepth 1 -maxdepth 1 -type d -name 'barcode*' 2>/dev/null | wc -l)"
+        done_n="$(grep -c . "$dir/log/pipeline_status.tmp" 2>/dev/null)"
+        done_n="${done_n:-0}"
+        if [ "$dir" != "$active_dir" ]; then
+            echo "[$(date +%H:%M)] Analysis started in $dir ($total barcodes)"
+            active_dir="$dir"
+        fi
+        printf '[%s] running %dm %02ds - %s of %s barcodes finished\n' \
+            "$(date +%H:%M)" $((secs / 60)) $((secs % 60)) "$done_n" "$total"
+    elif [ -n "$active_dir" ]; then
+        echo "[$(date +%H:%M)] Analysis finished in $active_dir"
+        echo "          results: $active_dir/results   (zip with: degenresolve-zip $active_dir)"
+        active_dir=""
+    fi
+    sleep 60
+done

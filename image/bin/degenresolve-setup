@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# One-time codespace setup (devcontainer postCreateCommand):
+#   - demo_data/: the v1.0.1 influenza A demo inputs (reads + reference, no results, so a
+#     run is genuinely end to end) plus the settings the reference run used
+#   - my_data/: where people drop their own run folders
+#   - the app opens with demo_data/ as its input directory the first time
+#   - noVNC connects automatically and fits the desktop to the browser tab
+#   - desktop menu entry, and default apps for the GUI's "open report / open folder" buttons
+set -u
+
+APP="${DEGENRESOLVE_HOME:-/opt/degenresolve}"
+WS="${CODESPACE_VSCODE_FOLDER:-$PWD}"
+DEMO="$WS/demo_data"
+
+if [ ! -d "$DEMO/fastq_pass" ]; then
+    mkdir -p "$DEMO"
+    cp -r "$APP/test_data/fastq_pass" "$APP/test_data/reference" "$DEMO/"
+    cp "$APP/test_data/pipeline_config.json" "$DEMO/demo_settings.json"
+    echo "Demo data ready in $DEMO"
+fi
+mkdir -p "$WS/my_data"
+
+# The GUI keeps its last input directory in QSettings; seed it once.
+CONF="$HOME/.config/ONTSequencing/DataAnalyzer.conf"
+if [ ! -f "$CONF" ]; then
+    mkdir -p "$(dirname "$CONF")"
+    printf '[General]\nworking_directory=%s\n' "$DEMO" > "$CONF"
+fi
+
+# noVNC (installed by the desktop-lite feature) reads defaults.json next to vnc.html.
+for d in /usr/local/novnc/noVNC*/; do
+    [ -d "$d" ] || continue
+    printf '{\n  "autoconnect": true,\n  "reconnect": true,\n  "resize": "remote"\n}\n' \
+        | sudo tee "${d}defaults.json" >/dev/null 2>&1 || true
+done
+
+xdg-mime default pcmanfm.desktop inode/directory 2>/dev/null || true
+xdg-mime default chromium.desktop text/html 2>/dev/null || true
+
+MENU="$HOME/.fluxbox/menu"
+if [ -f "$MENU" ] && ! grep -q DeGenRESOLVE "$MENU"; then
+    sed -i '0,/^[[:space:]]*\[begin\].*$/s//&\n    [exec] (DeGenRESOLVE) {degenresolve-gui}\n    [separator]/' "$MENU"
+fi
+
+echo "DeGenRESOLVE codespace setup complete."

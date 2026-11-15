@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# Zip a finished run so you can download it from the codespace.
+#
+#   degenresolve-zip RUN_DIR          results/, log/ and the run's settings (no raw reads,
+#                                     no merged/trimmed FASTQ or SAM intermediates)
+#   degenresolve-zip RUN_DIR --all    everything in RUN_DIR, including the input reads
+#
+# The zip is written next to RUN_DIR. Right-click it in the Explorer -> Download.
+set -euo pipefail
+
+RUN="${1:-}"
+if [ -z "$RUN" ] || [ ! -d "$RUN" ]; then
+    echo "Usage: degenresolve-zip RUN_DIR [--all]" >&2
+    exit 1
+fi
+RUN="$(cd "$RUN" && pwd)"
+if [ ! -d "$RUN/results" ]; then
+    echo "No results/ folder in $RUN - run the analysis first." >&2
+    exit 1
+fi
+
+OUT="$(dirname "$RUN")/$(basename "$RUN")_results_$(date +%Y%m%d_%H%M).zip"
+cd "$RUN"
+if [ "${2:-}" = "--all" ]; then
+    zip -qr "$OUT" .
+else
+    items=(results log)
+    for f in pipeline_config.json tool_data; do [ -e "$f" ] && items+=("$f"); done
+    zip -qr "$OUT" "${items[@]}" \
+        -x 'results/step_2_unzipped_merged/*' 'results/step_3_adapter_trimmed/*' '*.sam'
+fi
+echo "Created $OUT ($(du -h "$OUT" | cut -f1))."
+echo "Right-click it in the Explorer and choose Download."

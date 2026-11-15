@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+# Run the bundled influenza A demo headless (the documented CLI path) and check the output is
+# identical to the validated v1.0.1 reference run. CI runs this before publishing an image;
+# you can also run it in a codespace.
+#
+#   degenresolve-selftest [EMPTY_WORK_DIR]
+set -euo pipefail
+
+ENV_PREFIX="${DEGENRESOLVE_ENV:-/opt/conda/envs/degenresolve}"
+APP="${DEGENRESOLVE_HOME:-/opt/degenresolve}"
+export PATH="$ENV_PREFIX/bin:$PATH"
+
+WORK="${1:-$(mktemp -d "${TMPDIR:-/tmp}/degenresolve-selftest.XXXXXX")}"
+mkdir -p "$WORK"
+WORK="$(cd "$WORK" && pwd)"
+if [ -e "$WORK/results" ] || [ -e "$WORK/fastq_pass" ]; then
+    echo "$WORK already contains a run; give an empty folder." >&2
+    exit 2
+fi
+
+cp -r "$APP/test_data/fastq_pass" "$APP/test_data/reference" "$APP/test_data/pipeline_config.json" "$WORK/"
+cd "$WORK"
+echo "Self-test: DeGenRESOLVE $(cat "$APP/ONLINE_BUILD_INFO" 2>/dev/null | tr '\n' ' ')"
+echo "Self-test: demo pipeline in $WORK on $(nproc) cores, $(free -g | awk '/Mem:/{print $2}') GB RAM"
+
+start=$(date +%s)
+bash "$APP/src/degenresolve/scripts/main_with_config.sh" pipeline_config.json 2>&1 | tee pipeline.log
+elapsed=$(( $(date +%s) - start ))
+wall=$(printf '%dm %02ds' $((elapsed / 60)) $((elapsed % 60)))
+echo "Pipeline wall time: $wall" | tee -a pipeline.log
+
+set +e
+degenresolve-compare "$WORK" --markdown "$WORK/selftest-summary.md"
+status=$?
+set -e
+printf '\nPipeline wall time: **%s** on %s cores.\n' "$wall" "$(nproc)" >> "$WORK/selftest-summary.md"
+exit "$status"

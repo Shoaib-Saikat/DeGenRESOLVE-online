@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+# Start the DeGenRESOLVE desktop GUI on the codespace's virtual display (:1).
+#
+#   degenresolve-gui               start it (or bring it to the front) and return
+#   degenresolve-gui --foreground  run it attached to this terminal
+#
+# The window appears in the "DeGenRESOLVE desktop" tab (forwarded port 6080).
+set -u
+
+ENV_PREFIX="${DEGENRESOLVE_ENV:-/opt/conda/envs/degenresolve}"
+APP="${DEGENRESOLVE_HOME:-/opt/degenresolve}"
+export PATH="$ENV_PREFIX/bin:$PATH"
+export DISPLAY="${DISPLAY:-:1}"
+LOG="${TMPDIR:-/tmp}/degenresolve-gui.log"
+
+WORKDIR="${CODESPACE_VSCODE_FOLDER:-}"
+if [ -z "$WORKDIR" ] || [ ! -d "$WORKDIR" ]; then WORKDIR="$HOME"; fi
+
+wait_for_display() {
+    for _ in $(seq 1 90); do
+        xdpyinfo >/dev/null 2>&1 && return 0
+        sleep 1
+    done
+    echo "No X display on $DISPLAY after 90 s - the desktop service did not start." >&2
+    return 1
+}
+
+maximise() {
+    for _ in $(seq 1 60); do
+        if wmctrl -l 2>/dev/null | grep -q 'DeGenRESOLVE$'; then
+            wmctrl -r DeGenRESOLVE -b add,maximized_vert,maximized_horz 2>/dev/null
+            wmctrl -a DeGenRESOLVE 2>/dev/null
+            return 0
+        fi
+        sleep 1
+    done
+}
+
+if pgrep -u "$(id -u)" -f "$APP/degenresolve.py" >/dev/null 2>&1; then
+    echo "DeGenRESOLVE is already running - bringing it to the front."
+    wmctrl -a DeGenRESOLVE 2>/dev/null || true
+    exit 0
+fi
+
+wait_for_display || exit 1
+cd "$WORKDIR" || exit 1
+
+if [ "${1:-}" = "--foreground" ]; then
+    maximise &
+    exec python "$APP/degenresolve.py"
+fi
+
+setsid nohup python "$APP/degenresolve.py" >>"$LOG" 2>&1 </dev/null &
+( maximise ) >/dev/null 2>&1 &
+echo "DeGenRESOLVE started on the desktop (port 6080). GUI log: $LOG"
