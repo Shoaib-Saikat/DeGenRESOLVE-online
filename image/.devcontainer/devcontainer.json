@@ -1,0 +1,18 @@
+// Build-only configuration, used by .github/workflows/build-image.yml (devcontainers/ci).
+// It bakes the desktop-lite feature into the published image. Codespaces itself uses
+// /.devcontainer/devcontainer.json, which just pulls the finished image.
+{
+  "name": "DeGenRESOLVE image build",
+  "build": {
+    "dockerfile": "../Dockerfile",
+    "context": ".."
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/desktop-lite:1": {
+      "password": "noPassword",
+      "webPort": "6080",
+      "vncPort": "5901"
+    }
+  },
+  "remoteUser": "vscode"
+}
