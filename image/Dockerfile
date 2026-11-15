@@ -73,6 +73,12 @@ RUN for rc in /etc/bash.bashrc /etc/zsh/zshrc; do \
 COPY bin/ /usr/local/bin/
 RUN chmod +x /usr/local/bin/degenresolve-*
 
+# Desktop session start-up: launches DeGenRESOLVE together with the desktop. The desktop-lite
+# feature only adds the Fluxbox files that don't exist yet, so this one is kept.
+COPY fluxbox-startup /home/vscode/.fluxbox/startup
+RUN chmod +x /home/vscode/.fluxbox/startup \
+ && chown -R vscode:vscode /home/vscode/.fluxbox
+
 # Fail the build early if anything the pipeline or GUI needs is missing.
 RUN export PATH="${DEGENRESOLVE_ENV}/bin:${PATH}" \
  && python -c "import pysam, Bio, numpy, PyQt5.QtWidgets, PyQt5.QtWebEngineWidgets; print('python modules ok')" \
