@@ -56,7 +56,10 @@ jobs:
           imageTag: ${{ steps.meta.outputs.version }},latest
           push: filter
           refFilterForPush: refs/heads/main
-          eventFilterForPush: push,workflow_dispatch
+          # One event per line: a comma-separated value is read as a single event name.
+          eventFilterForPush: |
+            push
+            workflow_dispatch
           runCmd: degenresolve-selftest selftest-run
 
       - name: Add the self-test result to the run summary
