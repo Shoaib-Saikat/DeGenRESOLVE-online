@@ -6,9 +6,9 @@ Run **[DeGenRESOLVE](https://github.com/Shoaib-Saikat/DeGenRESOLVE-ONT-Sequencin
 the Oxford Nanopore amplicon consensus pipeline with automated IUPAC ambiguity resolution,
 from a web browser. Nothing needs to be installed.
 
-Click the button above, sign in to GitHub and wait 2–3 minutes. You get the real
+Click the button above, sign in to GitHub and wait a few minutes. You get the real
 DeGenRESOLVE desktop app in a browser tab, with the bundled influenza A demo data ready to
-run. Instructions open automatically (`WELCOME.md`).
+run. Step-by-step instructions are in `WELCOME.md` in the codespace's file list.
 
 Website: <https://degenresolve.vercel.app>
 

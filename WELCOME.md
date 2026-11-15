@@ -6,16 +6,22 @@ runs on a virtual screen that you open in a browser tab.
 
 ## 1. Open the app
 
-The desktop should open in a new browser tab by itself. If your browser blocked it:
+When VS Code asks **"Do you trust the authors of the files in this folder?"**, click
+**Trust Folder & Continue**. If it then asks whether to allow automatic tasks, click
+**Allow**. That opens the *DeGenRESOLVE run monitor* terminal, which shows progress and keeps
+the codespace awake during long runs.
+
+The desktop may open in a new browser tab by itself. If it doesn't:
 
 1. Open the **Ports** tab in the panel at the bottom of this window.
 2. Hover over **DeGenRESOLVE desktop (6080)** and click the globe icon (*Open in Browser*).
 3. If the page shows a **Connect** button, click it.
 
-If the DeGenRESOLVE window isn't there, type `degenresolve-gui` in the terminal below, or
-right-click the desktop and choose **DeGenRESOLVE**.
+DeGenRESOLVE starts with the desktop. On a brand-new codespace that can take a minute
+after this window opens. If the window isn't there, type `degenresolve-gui` in the
+terminal, or right-click the desktop and choose **DeGenRESOLVE**.
 
-## 2. Try the demo
+## 2. Try the demo (5–7 minutes)
 
 `demo_data/` holds two real influenza A barcodes and the 37-record reference panel that
 DeGenRESOLVE ships as its test dataset.
