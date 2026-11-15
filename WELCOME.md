@@ -21,6 +21,9 @@ DeGenRESOLVE starts with the desktop. On a brand-new codespace that can take a m
 after this window opens. If the window isn't there, type `degenresolve-gui` in the
 terminal, or right-click the desktop and choose **DeGenRESOLVE**.
 
+If the desktop tab keeps showing *Reconnecting…*, close any other DeGenRESOLVE desktop
+tabs you have open and reload this one.
+
 ## 2. Try the demo (5–7 minutes)
 
 `demo_data/` holds two real influenza A barcodes and the 37-record reference panel that
