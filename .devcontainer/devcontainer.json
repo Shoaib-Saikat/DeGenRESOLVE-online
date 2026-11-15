@@ -1,0 +1,53 @@
+// GitHub Codespaces configuration for running DeGenRESOLVE in the browser.
+// The image is built and tested by .github/workflows/build-image.yml (see image/).
+{
+  "name": "DeGenRESOLVE 1.0.1",
+  "image": "ghcr.io/shoaib-saikat/degenresolve-online:1.0.1",
+
+  // README: 8 GB RAM minimum, 16 GB recommended.
+  "hostRequirements": {
+    "cpus": 4,
+    "memory": "16gb",
+    "storage": "32gb"
+  },
+  "runArgs": ["--shm-size=1g"],
+
+  "containerEnv": {
+    "VNC_RESOLUTION": "1600x900x24"
+  },
+
+  "forwardPorts": [6080],
+  "portsAttributes": {
+    "6080": {
+      "label": "DeGenRESOLVE desktop",
+      "onAutoForward": "openBrowser"
+    },
+    "5901": {
+      "label": "VNC (internal)",
+      "onAutoForward": "ignore"
+    }
+  },
+
+  "postCreateCommand": "degenresolve-setup",
+  "postStartCommand": "degenresolve-gui",
+
+  "customizations": {
+    "codespaces": {
+      "openFiles": ["WELCOME.md"]
+    },
+    "vscode": {
+      "settings": {
+        "task.allowAutomaticTasks": "on",
+        "workbench.startupEditor": "none",
+        "files.exclude": {
+          "image": true,
+          "site": true,
+          ".github": true
+        },
+        "workbench.editorAssociations": {
+          "*.md": "vscode.markdown.preview.editor"
+        }
+      }
+    }
+  }
+}
