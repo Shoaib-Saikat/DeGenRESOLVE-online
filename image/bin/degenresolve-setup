@@ -28,18 +28,28 @@ if [ ! -f "$CONF" ]; then
 fi
 
 # noVNC (installed by the desktop-lite feature) reads defaults.json next to vnc.html.
+# "scale" fits the whole desktop into the browser tab. ("remote" resizing can oscillate
+# when the page's scrollbars appear and disappear.)
 for d in /usr/local/novnc/noVNC*/; do
     [ -d "$d" ] || continue
-    printf '{\n  "autoconnect": true,\n  "reconnect": true,\n  "resize": "remote"\n}\n' \
+    printf '{\n  "autoconnect": true,\n  "reconnect": true,\n  "resize": "scale"\n}\n' \
         | sudo tee "${d}defaults.json" >/dev/null 2>&1 || true
 done
 
 xdg-mime default pcmanfm.desktop inode/directory 2>/dev/null || true
 xdg-mime default chromium.desktop text/html 2>/dev/null || true
 
+# Right-click desktop menu: add DeGenRESOLVE, and point "File Manager" at the installed one.
 MENU="$HOME/.fluxbox/menu"
-if [ -f "$MENU" ] && ! grep -q DeGenRESOLVE "$MENU"; then
-    sed -i '0,/^[[:space:]]*\[begin\].*$/s//&\n    [exec] (DeGenRESOLVE) {degenresolve-gui}\n    [separator]/' "$MENU"
+if [ -f "$MENU" ]; then
+    if ! grep -q DeGenRESOLVE "$MENU"; then
+        sed -i '0,/^[[:space:]]*\[begin\].*$/s//&\n    [exec] (DeGenRESOLVE) {degenresolve-gui}\n    [separator]/' "$MENU"
+    fi
+    sed -i 's|{ *nautilus ~ *}|{ pcmanfm /workspaces }|' "$MENU"
 fi
+
+# Tells the desktop session (see ~/.fluxbox/startup) that it may start the app now.
+mkdir -p "$HOME/.config/degenresolve-online"
+touch "$HOME/.config/degenresolve-online/setup-done"
 
 echo "DeGenRESOLVE codespace setup complete."

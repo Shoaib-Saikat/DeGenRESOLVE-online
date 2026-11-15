@@ -3,6 +3,8 @@
 #
 #   degenresolve-gui               start it (or bring it to the front) and return
 #   degenresolve-gui --foreground  run it attached to this terminal
+#   degenresolve-gui --session     used by the desktop session at start-up: waits for the
+#                                  codespace setup to finish first
 #
 # The window appears in the "DeGenRESOLVE desktop" tab (forwarded port 6080).
 set -u
@@ -12,9 +14,15 @@ APP="${DEGENRESOLVE_HOME:-/opt/degenresolve}"
 export PATH="$ENV_PREFIX/bin:$PATH"
 export DISPLAY="${DISPLAY:-:1}"
 LOG="${TMPDIR:-/tmp}/degenresolve-gui.log"
+READY="$HOME/.config/degenresolve-online/setup-done"
 
+# Work in the codespace's repository folder. The desktop session doesn't inherit
+# CODESPACE_VSCODE_FOLDER, so fall back to the folder that holds WELCOME.md.
 WORKDIR="${CODESPACE_VSCODE_FOLDER:-}"
-if [ -z "$WORKDIR" ] || [ ! -d "$WORKDIR" ]; then WORKDIR="$HOME"; fi
+if [ -z "$WORKDIR" ] || [ ! -d "$WORKDIR" ]; then
+    WORKDIR="$(dirname "$(ls -d /workspaces/*/WELCOME.md 2>/dev/null | head -1)" 2>/dev/null)"
+fi
+if [ -z "$WORKDIR" ] || [ ! -d "$WORKDIR" ] || [ "$WORKDIR" = "." ]; then WORKDIR="$HOME"; fi
 
 wait_for_display() {
     for _ in $(seq 1 90); do
@@ -35,6 +43,15 @@ maximise() {
         sleep 1
     done
 }
+
+if [ "${1:-}" = "--session" ]; then
+    # First start of a new codespace: wait (up to 10 min) for degenresolve-setup.
+    for _ in $(seq 1 600); do
+        [ -f "$READY" ] && break
+        sleep 1
+    done
+    echo "[$(date)] desktop session start"
+fi
 
 if pgrep -u "$(id -u)" -f "$APP/degenresolve.py" >/dev/null 2>&1; then
     echo "DeGenRESOLVE is already running - bringing it to the front."
