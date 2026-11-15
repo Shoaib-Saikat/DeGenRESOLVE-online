@@ -28,8 +28,8 @@
     }
   },
 
+  // The app itself is started by the desktop session (~/.fluxbox/startup in the image).
   "postCreateCommand": "degenresolve-setup",
-  "postStartCommand": "degenresolve-gui",
 
   "customizations": {
     "codespaces": {
