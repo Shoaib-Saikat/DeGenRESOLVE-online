@@ -1,0 +1,15 @@
+# Created inside each codespace by degenresolve-setup; never commit them.
+demo_data/
+my_data/*
+!my_data/README.md
+
+# Results and archives people create in their codespace
+*_results_*.zip
+tool_data/
+ont_analyzer_config.json
+
+# CI self-test output
+image/selftest-run/
+
+__pycache__/
+.DS_Store
